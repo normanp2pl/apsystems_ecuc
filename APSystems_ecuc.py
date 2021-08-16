@@ -14,7 +14,26 @@ print (f"Lifetime generation : {life_time_generation} kWh")
 url = r'http://192.168.1.220/index.php/realtimedata'
 tables = pd.read_html(url)
 pve_table = tables[0]
-#String(pve_table).split('\n')
-# print (pve_table)
+inverters = {}
 for row in pve_table.values:
-    print (f"Inverter ID {row[0]} power = {row[1]}")
+    inv_id = str(row[0].split('-')[0])
+    panel_id = row[0].split('-')[1]
+    panel_power = int(re.search(r'\d+', row[1]).group()) if row[1] != '-' else 0
+    grid_freq = float(re.search(r'\d+\.\d+', row[2]).group()) if row[1] != '-' else 0
+    grid_voltage = float(re.search(r'\d+\.\d+', row[3]).group()) if row[1] != '-' else 0
+    inv_temperature = float(re.search(r'\d+\.\d+', row[4]).group()) if row[1] != '-' else 0
+    report_time = str(row[5])
+    if inv_id in inverters:
+        curr_power = inverters[inv_id]['sum_of_power']
+    else:
+        inverters[inv_id] = {}
+        curr_power = 0
+    inverters[inv_id]['sum_of_power'] = curr_power + panel_power
+    if not 'grid_freq' in inverters[inv_id]:
+        inverters[inv_id]['grid_freq'] = grid_freq
+        inverters[inv_id]['grid_voltage'] = grid_voltage
+        inverters[inv_id]['inv_temperature'] = inv_temperature
+        inverters[inv_id]['reporting_time'] = report_time
+    inverters[inv_id]['ch_' + panel_id] = panel_power
+for key, value in inverters.items():
+    print (f"Inwerter ID - {key} : Data : {value}")
